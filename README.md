@@ -1,3 +1,9 @@
+#### Disclaimer
+
+1. This is the result of an exercise that I had put myself through in order to understand as much as I could about a topic that I was interested in.
+
+2. I've tried my best to make sure that everything here is factually correct - but it is totally possible that I might have erred. If you see an error please raise an issue, or even better: raise a PR fixing it. PRs are absolutely welcome. ^_^
+
 ## Agenda
 
 ### Async Patterns
