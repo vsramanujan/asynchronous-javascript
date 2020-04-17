@@ -44,7 +44,7 @@
 
 ##### Things that might be happening / waiting to happen on a web page at any point in time:
 1. Response callback to async requests
-2. Garbage colelctor
+2. Garbage collector
 3. Style CSS repainter
 4. Layout engine
 
@@ -104,7 +104,7 @@ You cannot solve this without having some global state between the 3 callbacks s
     
     - So whenever there's a callback, there is a trust that the caller of the callback
     	
-        - doesn't call it too many or too few times. 
+        - doesn't call it too many times
         - doesn't call it too few times
         - not too late
         - not too soon
@@ -113,7 +113,7 @@ You cannot solve this without having some global state between the 3 callbacks s
         
 2. They are not reasonable 
 
-	- The only way to express temporal dependecies (one starts only after something finishes) using callbacks is by nesting
+	- The only way to express temporal sequence (one starts only after something finishes) using callbacks is by nesting
     
     - So what happens is that we are forced to keep taking these jumps in our code to actually figure out the path of execution
     
@@ -136,7 +136,7 @@ You cannot solve this without having some global state between the 3 callbacks s
 #### Synchronous thunk
 - From a sync perspective, a thunk is a function that has everything already that it needs to do to give you some value
 - So you just call it and it will give you a value back
-- So a thunk is just a function with some closured state keep track of some values, and when called it will give the result over that state
+- So a thunk is just a function with some closured state that keeps track of some values, and when called it will give the result over that state
 
 ```js
 
@@ -147,7 +147,7 @@ var thunk = function() {
 ```
 
 - So the thunk itself has become a container around that particular collection of state (aka 10,15 here)
-- This container can now passed around anywhere in my program and to extract the value I just need to call it
+- This container can now be passed around anywhere in my program and to extract the value I just need to call it
 - So I don't need to pass the state itself around, but only the container needs to be passed around
 
 - __This is the fundamental underpinning for what a promise is - a wrapper around a value__
@@ -189,10 +189,15 @@ function makeThunk(fn) {
     }
 }
 
+function addAsync(num1, num2, cb) {
+    let sum = num1 + num2;
+    return cb(sum);
+}
+
 var thunk =  makeThunk(addAsync, 10, 15);
 
 thunk(function(sum) {
-    	console.log(sum);
+    	console.log(sum); // 25
 })
 ```
 
@@ -224,9 +229,9 @@ function readFile(fileName) {
 }
 ```
 
-- Now, assume you have an async function readFile that does the call for you. It accepts a callback, obviously.
+- Now, assume you have an async function fakeAjax that does the call for you. It accepts a callback, obviously.
 
-- We've wrapped the function with our own function `readFile` which is going to be our thunk
+- We've wrapped that function with our own function `readFile` which is going to be our thunk
 
 - Why would our `makeThunk` not work here? Because, our makeThunk is a utility that only produces `lazyThunks` - and as we noted before - `lazyThunks` can only help us in modelling sequential invocations of actions
 
@@ -258,7 +263,7 @@ file1Thunk(function(file1Contents) {
 }));
 ```
 
-- Now, since we are now operating on the the `thunk` and not the async function itself, not only are we guaranteed the order here (without having to maintain complicated global state) - we are also executing all 3 async operations in parallel!
+- Now, since we are operating on the `thunk` and not the async function itself, not only are we guaranteed the order here (without having to maintain complicated global state) - we are also executing all 3 async operations in parallel!
 
 - We no longer need a global shared state between the 3 of these file reads that we would have needed in case we were not to use thunks!
 
@@ -320,7 +325,7 @@ file1Thunk(function(file1Contents) {
 	
     - Promises come to Javascript from a language called *__E__*
 	
-    - Promises, through their mechanism (not much so because of their API), is bascially a *__monand__* (functional programming nerds, calm down)
+    - Promises, through their mechanism (not much so because of their API), is bascially a *__monad__* (functional programming nerds, calm down)
 
 - Promises also uninvert the control (actually not invert it in the first place) during the handling of asynchronous code. Instead of you giving a callback to the async code and asking it to invoke it when done (the inversion of control we saw before), you expect the called async code to give you back something - namely, an Event Listener. We can then subscribe to the *__completion event__* of that Event Listener
 
@@ -355,7 +360,7 @@ function error(err) {
 
 - But we don't listen to the "completed" event in a promise exactly using the way mentioned above - but its an important conceptual base for understanding what a promise is like - a promise is **like** an event listener
 
-- And instead of calling it the "completed" event, we call it the then event
+- And instead of calling it the "completed" event, we call it the "then" event
 
 
 ``` js 
@@ -586,7 +591,7 @@ urls
 .map(getFile)
 .reduce(function combine(acc,promise){
 	return acc.then(function() {
-        return pr;
+        return promise;
     }).then(output);
 },Promise.resolve())// basically creates and resolves a promise
 .then(function() {
@@ -606,8 +611,8 @@ urls
     - The `.then` of `promise.all` will take the result of all promises in the order give in the initial function, irrespective of when they finish
     - So, every step in a promise chain could essentially be a promise.all as well
     - The old school terminology for this is called a __**gate**__
-    	- Gate is basically when you have multiple things that need to happen paralelly and you need to wait till all of them finish before moving on, that step is called a gate
-   - If any of the pormises in a Promise .all rejects, then the final promise is rejected as well. So promise.all necessitates successful completion
+    	- Gate is basically when you have multiple things that need to happen parallelly and you need to wait till all of them finish before moving on, that step is called a gate
+   - If any of the promises in a Promise. all rejects, then the final promise is rejected as well. So Promise. all necessitates successful completion
    
    
    
@@ -630,7 +635,7 @@ Promise.race([
     
 - So the above is how you would basically make sure that the promise just doesn't go on indefinitely and we set a timeout for it
 
-- Promise.race will throw away all its references once completed so that if there are failures, the other promise can be garbage collected
+- Promise.race will throw away all its references once completed so that if there are failures, the other promises can be garbage collected
 
 - Most promise libraries have an higher order abstraction for setting out timeouts for promises
 
@@ -710,11 +715,9 @@ function getData(d){
 // and returns the iterator
 var run = coroutine(function*() {
    	var x = 1 + (yield getData(10));
-    var y = 1 + (yield getData(30));
-    var answer = (yield getData(
-        			"Meaning of life: " + (x+y);
-        		));
-    console.log(answer);
+    	var y = 1 + (yield getData(30));
+    	var answer = (yield getData("Meaning of life: " + (x+y)));
+    	console.log(answer);
 });
 
 run();
@@ -723,7 +726,7 @@ run();
 
 - What have we done above? WE HAVE ACHIEVED GREATNESS. We have `synchronous looking async code` inside the generator!
 
-- In fact, the yields in the above lines does not care about whether the data it yields are synchronous or asynchronous! So in effect, we have factored out asynchocity itself out of our code
+- In fact, the yields in the above lines does not care about whether the data it yields are synchronous or asynchronous! So in effect, we have factored out asynchrocity itself out of our code
 
 - Even our error handling becomes synchronous looking again! If the getData function threw an error, it will get caught only within the try catch that we'll have to add inside the generator since thats the caller
 
@@ -811,7 +814,7 @@ p1.then(function(classname) {
 
 - PROMISES ARE RESOLVED ONLY ONCE! So, this would only work for 1 click of the button. Uh-oh!
 
-- One way that we could try addressing this is to create the event handler and then use the promise inside it - but then... what sthe point of it? You'll be resolving/rejecting a promise and immediately doing a `.then`. Moreover, your promise only exists within the event handler -> you cannot set up the event handler promise in one place and handle the promise elsewhere!
+- One way that we could try addressing this is to create the event handler and then use the promise inside it - but then... whats the point of it? You'll be resolving/rejecting a promise and immediately doing a `.then`. Moreover, your promise only exists within the event handler -> you cannot set up the event handler promise in one place and handle the promise elsewhere!
 
 
 - So.. enter observables!
@@ -836,7 +839,7 @@ p1.then(function(classname) {
 ``` js
 var obs = Rx.Observable.fromEvent(btn,"click");
 
-obsv.map(function mapper(evt) {
+obs.map(function mapper(evt) {
     	return evt.target.className;
 	})
 	.filter(function filterer(className) {
@@ -1212,7 +1215,7 @@ $(document).ready(function() {
 - Observables
 - CSP
 
-None of these are going to replace the other. Instead these are concepts that build on top of the other and that is exactly why learning about the conceptual underpiunnings of each of them is really crucial.
+None of these are going to replace the other. Instead these are concepts that build on top of the other and that is exactly why learning about the conceptual underpinnings of each of them is really crucial.
 
 You will have places in your program where you would need to use any of the above, and it is a decision that you'll have to take at that point as to which one is most suitable for the situation. 
 
